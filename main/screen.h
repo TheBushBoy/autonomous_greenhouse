@@ -4,12 +4,7 @@
 #include <LiquidCrystal.h>
 #include <string.h>
 
-#define RS 12
-#define E 11
-#define D4 5
-#define D5 4
-#define D6 3
-#define D7 2
+#include "pin.h"
 
 class Screen {
 public:

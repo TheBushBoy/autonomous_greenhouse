@@ -2,9 +2,9 @@
 #define SENSORMANAGER_H
 
 #include "sensor.h"
+#include "pin.h"
 
 #define NB_SENSOR 1
-#define DHT_pin 7
 
 struct SensorData {
   float temperature;

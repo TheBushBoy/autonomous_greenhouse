@@ -1,8 +1,8 @@
 #include "sensorManager.h"
 #include "screen.h"
+#include "pin.h"
 
 #define TEMP_THRESHOLD 25.0
-#define FAN_pin 8
 
 SensorManager sensorManager;
 Screen screen;
