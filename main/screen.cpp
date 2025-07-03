@@ -18,6 +18,11 @@ void Screen::update() {
   }
 
   int name_len = strlen(name);
+
+  if (name_len > 16 - value_str - 1) {
+    name_len.substr(0, 16 - value_str - 1)
+  }
+
   int value_len = strlen(value_str);
   int space_len = 16 - name_len - value_len;
   if (space_len < 0) space_len = 0;
