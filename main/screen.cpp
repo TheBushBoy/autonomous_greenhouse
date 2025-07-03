@@ -7,8 +7,15 @@ void Screen::begin() {
 }
 
 void Screen::update() {
-  char value_str[10];
-  dtostrf(value, 1, 1, value_str);
+  char value_str[16];
+
+  if (isnan(this->value)) {
+    value_str = "Err";
+  }
+  else {
+    dtostrf(value, 1, 1, value_str);
+    strcat(value_str, unit)
+  }
 
   int name_len = strlen(name);
   int value_len = strlen(value_str);
@@ -24,4 +31,10 @@ void Screen::update() {
   }
 
   lcd.print(value_str);
+}
+
+void Screen::printValue(char* new_name, float new_value, char new_unit) {
+  this->name = new_name;
+  this->value = new_value;
+  this->unit = new_unit;
 }
