@@ -6,12 +6,18 @@
 #include "esp_log.h"
 
 #include "includes/dht22.h"
+#include "includes/hw390.h"
 
 const char* TAG = "MAIN";
 
 void app_main(void) {
     if (dht22_init() != ESP_OK) {
         ESP_LOGE(TAG, "Error init DHT22");
+        return;
+    }
+
+    if (hw390_init() != ESP_OK) {
+        ESP_LOGE(TAG, "Error init HW390");
         return;
     }
         
@@ -26,6 +32,7 @@ void app_main(void) {
         if (result == DHT22_OK) {
             ESP_LOGI(TAG, "Temperature : %4.1f °C", reading.temperature);
             ESP_LOGI(TAG, "Humidity    : %4.1f %%", reading.humidity);
+            ESP_LOGI(TAG, "Moisture    : %4.1f %%", hw390_read_moisture_percent());
         } else {
             ESP_LOGE(TAG, "Reading error (code: %d)", result);
         }
