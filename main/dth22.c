@@ -1,11 +1,11 @@
 /**
-* Made with documentation
-* - https://www.alldatasheet.com/datasheet-pdf/view/1132459/ETC2/DHT22.html
+* Temperature and humidity digital sensor
+* Made with documentation https://www.alldatasheet.com/datasheet-pdf/view/1132459/ETC2/DHT22.html
 */
 
-#include "includes/pins.h"
 #include "includes/dht22.h"
 
+#define DHT22_PIN GPIO_NUM_21
 #define DHT22_START_SIGNAL_US 1000
 #define DHT22_TIMEOUT_US 100
 
