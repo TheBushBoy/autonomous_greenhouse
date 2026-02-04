@@ -4,7 +4,6 @@
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
 #include "hal/gpio_types.h"
-#include "http_server.h"
 #include "rom/ets_sys.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -24,6 +23,7 @@ void sensor_task(void* pvParameters) {
         dht22_error_t result_dht22 = dht22_read(&dh22_reading);
         esp_err_t result_hw390 = hw390_read(&hw390_reading);
         
+        // Afficher les lectures
         if (result_dht22 == DHT22_OK) {
             ESP_LOGI(TAG, "Temperature : %4.1f °C", dh22_reading.temperature);
             ESP_LOGI(TAG, "Humidity    : %4.1f %%", dh22_reading.humidity);
@@ -38,6 +38,14 @@ void sensor_task(void* pvParameters) {
         } else {
             ESP_LOGW(TAG, "Moisture sensor HW390 reading error");
         }
+
+        float temperature = (result_dht22 == DHT22_OK) ? dh22_reading.temperature : 0.0f;
+        float humidity_air = (result_dht22 == DHT22_OK) ? dh22_reading.humidity : 0.0f;
+        float soil_1 = (result_hw390 == ESP_OK) ? hw390_reading.moisture[0] : 0.0f;
+        float soil_2 = (result_hw390 == ESP_OK) ? hw390_reading.moisture[1] : 0.0f;
+        float soil_3 = (result_hw390 == ESP_OK) ? hw390_reading.moisture[2] : 0.0f;
+        
+        update_sensor_data_http(temperature, humidity_air, soil_1, soil_2, soil_3);
         
         vTaskDelay(pdMS_TO_TICKS(READ_INTERVAL_MS));
     }
@@ -62,7 +70,8 @@ void app_main(void) {
         return;
     }
     
-    wifi_init_sta();
-
+    static httpd_handle_t server = NULL;
+    wifi_init_sta(&server);
+    
     xTaskCreate(sensor_task, "sensor_task", 4096, NULL, 1, NULL);
 }
