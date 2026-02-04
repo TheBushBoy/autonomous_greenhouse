@@ -1,5 +1,5 @@
-#ifndef DTH22
-#define DTH22
+#ifndef DTH22_H
+#define DTH22_H
 
 #include <stdio.h>
 #include <stdint.h>

@@ -1,5 +1,5 @@
-#ifndef HW390
-#define HW390
+#ifndef HW390_H
+#define HW390_H
 
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"

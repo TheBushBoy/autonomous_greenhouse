@@ -9,7 +9,7 @@
 #define DHT22_START_SIGNAL_US 1000
 #define DHT22_TIMEOUT_US 100
 
-static const char *TAG = "DHT22";
+static const char* TAG = "DHT22";
 
 int dht22_wait_for_level(gpio_num_t pin, int level, int timeout_us) {
     int elapsed = 0;
@@ -42,7 +42,7 @@ esp_err_t dht22_init(void) {
     return ESP_OK;
 }
 
-dht22_error_t dht22_read(dht22_reading_t *reading) {
+dht22_error_t dht22_read(dht22_reading_t* reading) {
     uint8_t data[5] = {0}; // Humidity, MSB and LSB, Temperature, MSB and LSB, and checksum
     
     // Pre-reading sequence

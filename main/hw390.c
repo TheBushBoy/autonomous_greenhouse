@@ -19,7 +19,7 @@ static const adc_channel_t hw390_adc_channels[HW390_SENSOR_COUNT] = {
 #define HW390_VALUE_IN_WATER 1200
 #define HW390_VALUE_IN_AIR   3000
 
-static const char *TAG = "SOIL_MOISTURE";
+static const char* TAG = "SOIL_MOISTURE";
 static adc_oneshot_unit_handle_t adc_handle = NULL;
 
 esp_err_t hw390_init(void) {
@@ -53,7 +53,7 @@ esp_err_t hw390_init(void) {
     return ESP_OK;
 }
 
-esp_err_t hw390_read(hw390_reading_t *reading) {
+esp_err_t hw390_read(hw390_reading_t* reading) {
     for (int i = 0; i < HW390_SENSOR_COUNT; i++) {
         int adc_raw = 0;
         esp_err_t ret = adc_oneshot_read(adc_handle,
