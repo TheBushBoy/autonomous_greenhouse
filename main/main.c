@@ -17,10 +17,17 @@
 #define PUMP_1_PIN GPIO_NUM_19
 #define PUMP_2_PIN GPIO_NUM_18
 
+#define FAN_0_PIN GPIO_NUM_16
+#define FAN_1_PIN GPIO_NUM_17
+
+#define TEMP_THRESHOLD 30.0f // °C
+#define FAN_ON_TIME_MS 
+#define FAN_TASK_PERIOD_MS 2000 // boucle toutes les 2 secondes
+
 #define MOISTURE_THRESHOLD 25.0f
 #define PUMP_ON_TIME_MS 200
-#define SOAK_DELAY_MS 60000
-#define TASK_PERIOD_MS 3600000
+#define SOAK_DELAY_MS 60000 // 1 minute
+#define IRRIGATION_TASK_PERIOD_MS 3600000 // 1 hour
 
 const char* TAG = "MAIN";
 
@@ -31,17 +38,17 @@ static const gpio_num_t pump_pins[3] = {
 };
 
 void sensor_task(void* pvParameters) {
-    dht22_reading_t dh22_reading;
+    dht22_reading_t dht22_reading;
     hw390_reading_t hw390_reading;
     
     while (1) {
-        dht22_error_t result_dht22 = dht22_read(&dh22_reading);
+        dht22_error_t result_dht22 = dht22_read(&dht22_reading);
         esp_err_t result_hw390 = hw390_read(&hw390_reading);
         
         // Afficher les lectures
         if (result_dht22 == DHT22_OK) {
-            ESP_LOGI(TAG, "Temperature : %4.1f °C", dh22_reading.temperature);
-            ESP_LOGI(TAG, "Humidity    : %4.1f %%", dh22_reading.humidity);
+            ESP_LOGI(TAG, "Temperature : %4.1f °C", dht22_reading.temperature);
+            ESP_LOGI(TAG, "Humidity    : %4.1f %%", dht22_reading.humidity);
         } else {
             ESP_LOGW(TAG, "Temperature/humidity sensor DHT22 reading error");
         }
@@ -54,8 +61,8 @@ void sensor_task(void* pvParameters) {
             ESP_LOGW(TAG, "Moisture sensor HW390 reading error");
         }
 
-        float temperature = (result_dht22 == DHT22_OK) ? dh22_reading.temperature : 0.0f;
-        float humidity_air = (result_dht22 == DHT22_OK) ? dh22_reading.humidity : 0.0f;
+        float temperature = (result_dht22 == DHT22_OK) ? dht22_reading.temperature : 0.0f;
+        float humidity_air = (result_dht22 == DHT22_OK) ? dht22_reading.humidity : 0.0f;
         float soil_1 = (result_hw390 == ESP_OK) ? hw390_reading.moisture[0] : 0.0f;
         float soil_2 = (result_hw390 == ESP_OK) ? hw390_reading.moisture[1] : 0.0f;
         float soil_3 = (result_hw390 == ESP_OK) ? hw390_reading.moisture[2] : 0.0f;
@@ -75,13 +82,12 @@ void irrigation_task(void *pvParameters) {
     }
 
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(TASK_PERIOD_MS));
+        vTaskDelay(pdMS_TO_TICKS(IRRIGATION_TASK_PERIOD_MS));
 
         if (hw390_read(&hw390_reading) != ESP_OK)
             continue;
 
         for (int i = 0; i < 3; i++) {
-
             if (hw390_reading.moisture[i] < 0.0f)
                 continue;
 
@@ -96,6 +102,31 @@ void irrigation_task(void *pvParameters) {
 
             vTaskDelay(pdMS_TO_TICKS(SOAK_DELAY_MS));
         }
+    }
+}
+
+void fan_task(void *pvParameters) {
+    dht22_reading_t dht22_reading;
+
+    gpio_set_direction(FAN_0_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_direction(FAN_1_PIN, GPIO_MODE_OUTPUT);
+
+    gpio_set_level(FAN_0_PIN, 0);
+    gpio_set_level(FAN_1_PIN, 0);
+
+    while (1) {
+        if (dht22_read(&dht22_reading) == DHT22_OK) {
+            uint32_t state = dht22_reading.temperature > TEMP_THRESHOLD ? 1 : 0;
+
+            gpio_set_level(FAN_0_PIN, state);
+            gpio_set_level(FAN_1_PIN, state);
+
+            ESP_LOGI(TAG, "Fans turned %s", state ? "on" : "off");
+        } else {
+            ESP_LOGW(TAG, "Failed to read DHT22");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(FAN_TASK_PERIOD_MS));
     }
 }
 
