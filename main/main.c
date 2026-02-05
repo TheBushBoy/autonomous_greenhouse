@@ -13,7 +13,27 @@
 
 #define READ_INTERVAL_MS 5000
 
+#define PUMP_0_PIN GPIO_NUM_23
+#define PUMP_1_PIN GPIO_NUM_19
+#define PUMP_2_PIN GPIO_NUM_18
+
+#define MOISTURE_THRESHOLD 25.0f
+#define PUMP_ON_TIME_MS 200
+#define SOAK_DELAY_MS 60000
+#define TASK_PERIOD_MS 3600000
+
 const char* TAG = "MAIN";
+
+static const gpio_num_t pump_pins[3] = {
+    PUMP_0_PIN,
+    PUMP_1_PIN,
+    PUMP_2_PIN
+};
+
+static inline void pump_set(gpio_num_t pin, bool on) {
+    gpio_set_level(pin, on ? 0 : 1);
+}
+
 
 void sensor_task(void* pvParameters) {
     dht22_reading_t dh22_reading;
@@ -48,6 +68,39 @@ void sensor_task(void* pvParameters) {
         update_sensor_data_http(temperature, humidity_air, soil_1, soil_2, soil_3);
         
         vTaskDelay(pdMS_TO_TICKS(READ_INTERVAL_MS));
+    }
+}
+
+void irrigation_task(void *pvParameters) {
+    hw390_reading_t hw390_reading;
+
+    for (int i = 0; i < 3; i++) {
+        gpio_set_direction(pump_pins[i], GPIO_MODE_OUTPUT);
+        pump_set(pump_pins[i], false);
+    }
+
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(TASK_PERIOD_MS));
+
+        if (hw390_read(&hw390_reading) != ESP_OK)
+            continue;
+
+        for (int i = 0; i < 3; i++) {
+
+            if (hw390_reading.moisture[i] < 0.0f)
+                continue;
+
+            if (hw390_reading.moisture[i] >= MOISTURE_THRESHOLD)
+                continue;
+
+            ESP_LOGI(TAG, "Irrigation zone %d", i + 1);
+
+            pump_set(pump_pins[i], true);
+            vTaskDelay(pdMS_TO_TICKS(PUMP_ON_TIME_MS));
+            pump_set(pump_pins[i], false);
+
+            vTaskDelay(pdMS_TO_TICKS(SOAK_DELAY_MS));
+        }
     }
 }
 
