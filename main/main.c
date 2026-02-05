@@ -30,11 +30,6 @@ static const gpio_num_t pump_pins[3] = {
     PUMP_2_PIN
 };
 
-static inline void pump_set(gpio_num_t pin, bool on) {
-    gpio_set_level(pin, on ? 0 : 1);
-}
-
-
 void sensor_task(void* pvParameters) {
     dht22_reading_t dh22_reading;
     hw390_reading_t hw390_reading;
@@ -76,7 +71,7 @@ void irrigation_task(void *pvParameters) {
 
     for (int i = 0; i < 3; i++) {
         gpio_set_direction(pump_pins[i], GPIO_MODE_OUTPUT);
-        pump_set(pump_pins[i], false);
+        gpio_set_level(pump_pins[i], 0);
     }
 
     while (1) {
@@ -95,9 +90,9 @@ void irrigation_task(void *pvParameters) {
 
             ESP_LOGI(TAG, "Irrigation zone %d", i + 1);
 
-            pump_set(pump_pins[i], true);
+            gpio_set_level(pump_pins[i], 1);
             vTaskDelay(pdMS_TO_TICKS(PUMP_ON_TIME_MS));
-            pump_set(pump_pins[i], false);
+            gpio_set_level(pump_pins[i], 0);
 
             vTaskDelay(pdMS_TO_TICKS(SOAK_DELAY_MS));
         }
