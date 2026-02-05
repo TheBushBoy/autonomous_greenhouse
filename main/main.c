@@ -153,4 +153,6 @@ void app_main(void) {
     wifi_init_sta(&server);
     
     xTaskCreate(sensor_task, "sensor_task", 4096, NULL, 1, NULL);
+    xTaskCreate(irrigation_task, "irrigation_task", 4096, NULL, 1, NULL);
+    xTaskCreate(fan_task, "fan_task", 4096, NULL, 1, NULL);
 }
