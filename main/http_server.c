@@ -8,6 +8,8 @@
 
 #include "includes/http_server.h"
 
+#define OTA_BUF_SIZE 1024
+
 static const char* TAG = "HTTP_SERVER";
 
 static sensor_data_t sensor_data = {0};
@@ -37,6 +39,68 @@ static esp_err_t sensors_get_handler(httpd_req_t* req) {
     return ESP_OK;
 }
 
+esp_err_t ota_upload_handler(httpd_req_t *req)
+{
+    esp_ota_handle_t ota_handle = 0;
+    esp_err_t err;
+    
+    const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
+    if (update_partition == NULL) {
+        ESP_LOGE(TAG, "No OTA partition found");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "No OTA partition available");
+        return ESP_FAIL;
+    }
+    
+    err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &ota_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_begin failed: %s", esp_err_to_name(err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA begin failed");
+        return ESP_FAIL;
+    }
+    
+    char buf[OTA_BUF_SIZE]; // Temporary buffer in RAM before writing to flash
+    int received;           // Number of bytes received in current iteration
+
+    while ((received = httpd_req_recv(req, buf, sizeof(buf))) > 0) {
+        err = esp_ota_write(ota_handle, (const void *)buf, received);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_ota_write failed: %s", esp_err_to_name(err));
+            esp_ota_abort(ota_handle);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA write failed");
+            return ESP_FAIL;
+        }
+    }
+    
+    if (received < 0) {
+        ESP_LOGE(TAG, "HTTP receive failed");
+        esp_ota_abort(ota_handle);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Reception failed");
+        return ESP_FAIL;
+    }
+        
+    err = esp_ota_end(ota_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_end failed: %s", esp_err_to_name(err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA validation failed");
+        return ESP_FAIL;
+    }
+    
+    err = esp_ota_set_boot_partition(update_partition);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_set_boot_partition failed: %s", esp_err_to_name(err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to set boot partition");
+        return ESP_FAIL;
+    }
+    
+    httpd_resp_sendstr(req, "OTA update successful, rebooting...");
+    
+    // Wait for response before rebooting
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    esp_restart();
+    
+    return ESP_OK;
+}
+
 httpd_handle_t start_webserver(void) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -51,8 +115,16 @@ httpd_handle_t start_webserver(void) {
         .user_ctx  = NULL
     };
 
+    const httpd_uri_t uri_ota = {
+        .uri       = "/ota",
+        .method    = HTTP_POST,
+        .handler   = ota_upload_handler,
+        .user_ctx  = NULL
+    };
+
     if (httpd_start(&server, &config) == ESP_OK) {
         httpd_register_uri_handler(server, &uri_get_sensors);
+        httpd_register_uri_handler(server, &uri_ota);
         return server;
     }
 

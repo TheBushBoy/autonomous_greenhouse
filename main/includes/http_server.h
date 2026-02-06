@@ -10,6 +10,7 @@
 #include "esp_netif.h"
 #include "esp_http_server.h"
 #include "freertos/event_groups.h"
+#include "esp_ota_ops.h"
 #include <cJSON.h>
 
 #include "esp_http_server.h"
