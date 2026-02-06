@@ -7,8 +7,11 @@
 */
 
 #include "includes/http_server.h"
+#include "driver/gpio.h"
+#include "hal/gpio_types.h"
 
 #define OTA_BUF_SIZE 1024
+#define LED_OTA_PIN GPIO_NUM_2
 
 static const char* TAG = "HTTP_SERVER";
 
@@ -44,6 +47,9 @@ esp_err_t ota_upload_handler(httpd_req_t *req)
     esp_ota_handle_t ota_handle = 0;
     esp_err_t err;
     
+    gpio_set_direction(LED_OTA_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_level(LED_OTA_PIN, 1);
+
     const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
     if (update_partition == NULL) {
         ESP_LOGE(TAG, "No OTA partition found");
@@ -94,8 +100,15 @@ esp_err_t ota_upload_handler(httpd_req_t *req)
     
     httpd_resp_sendstr(req, "OTA update successful, rebooting...");
     
-    // Wait for response before rebooting
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    // Wait for response before rebooting, blinking led
+    for (int i = 0; i < 10; i++) {
+        gpio_set_level(LED_OTA_PIN, 0);
+        vTaskDelay(pdMS_TO_TICKS(100));
+        gpio_set_level(LED_OTA_PIN, 1);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
+    gpio_set_level(LED_OTA_PIN, 0);
     esp_restart();
     
     return ESP_OK;
