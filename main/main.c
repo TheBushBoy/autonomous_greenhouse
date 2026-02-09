@@ -7,9 +7,11 @@
 #include "rom/ets_sys.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+
 #include "includes/dht22.h"
 #include "includes/hw390.h"
 #include "includes/http_server.h"
+#include "includes/logs.h"
 
 #define READ_INTERVAL_MS 5000
 
@@ -22,7 +24,7 @@
 
 #define TEMP_THRESHOLD 30.0f // °C
 #define FAN_ON_TIME_MS 
-#define FAN_TASK_PERIOD_MS 2000 // boucle toutes les 2 secondes
+#define FAN_TASK_PERIOD_MS 2000 // 2s
 
 #define MOISTURE_THRESHOLD 25.0f
 #define PUMP_ON_TIME_MS 200
@@ -45,18 +47,17 @@ void sensor_task(void* pvParameters) {
         dht22_error_t result_dht22 = dht22_read(&dht22_reading);
         esp_err_t result_hw390 = hw390_read(&hw390_reading);
         
-        // Afficher les lectures
         if (result_dht22 == DHT22_OK) {
-            ESP_LOGI(TAG, "Temperature : %4.1f °C", dht22_reading.temperature);
-            ESP_LOGI(TAG, "Humidity    : %4.1f %%", dht22_reading.humidity);
+            ESP_LOGD(TAG, "Temperature : %4.1f °C", dht22_reading.temperature);
+            ESP_LOGD(TAG, "Humidity    : %4.1f %%", dht22_reading.humidity);
         } else {
             ESP_LOGW(TAG, "Temperature/humidity sensor DHT22 reading error");
         }
         
         if (result_hw390 == ESP_OK) {
-            ESP_LOGI(TAG, "Moisture 1  : %4.1f %%", hw390_reading.moisture[0]);
-            ESP_LOGI(TAG, "Moisture 2  : %4.1f %%", hw390_reading.moisture[1]);
-            ESP_LOGI(TAG, "Moisture 3  : %4.1f %%", hw390_reading.moisture[2]);
+            ESP_LOGD(TAG, "Moisture 1  : %4.1f %%", hw390_reading.moisture[0]);
+            ESP_LOGD(TAG, "Moisture 2  : %4.1f %%", hw390_reading.moisture[1]);
+            ESP_LOGD(TAG, "Moisture 3  : %4.1f %%", hw390_reading.moisture[2]);
         } else {
             ESP_LOGW(TAG, "Moisture sensor HW390 reading error");
         }
@@ -131,6 +132,9 @@ void fan_task(void *pvParameters) {
 }
 
 void app_main(void) {
+    // Log redirection
+    logs_init();
+
     // NVS init
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
