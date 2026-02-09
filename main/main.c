@@ -156,7 +156,7 @@ void app_main(void) {
     static httpd_handle_t server = NULL;
     wifi_init_sta(&server);
     
-    xTaskCreate(sensor_task, "sensor_task", 4096, NULL, 1, NULL);
-    xTaskCreate(irrigation_task, "irrigation_task", 4096, NULL, 1, NULL);
-    xTaskCreate(fan_task, "fan_task", 4096, NULL, 1, NULL);
+    xTaskCreate(sensor_task, "sensor_task", 4096, NULL, 5, NULL);
+    // xTaskCreate(irrigation_task, "irrigation_task", 4096, NULL, 4, NULL);
+    // xTaskCreate(fan_task, "fan_task", 4096, NULL, 4, NULL);
 }
