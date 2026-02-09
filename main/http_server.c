@@ -42,8 +42,8 @@ static esp_err_t sensors_get_handler(httpd_req_t* req) {
     return ESP_OK;
 }
 
-esp_err_t ota_upload_handler(httpd_req_t *req)
-{
+/* POST /ota */
+esp_err_t ota_upload_handler(httpd_req_t *req) {
     esp_ota_handle_t ota_handle = 0;
     esp_err_t err;
     
