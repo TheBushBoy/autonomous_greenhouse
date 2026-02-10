@@ -23,7 +23,7 @@
 #define FAN_1_PIN GPIO_NUM_17
 
 #define TEMP_THRESHOLD 30.0f // °C
-#define FAN_ON_TIME_MS 
+#define FAN_ON_TIME_MS 60000 // 1 minute
 #define FAN_TASK_PERIOD_MS 2000 // 2s
 
 #define MOISTURE_THRESHOLD 25.0f
@@ -120,6 +120,7 @@ void fan_task(void *pvParameters) {
             uint32_t state = dht22_reading.temperature > TEMP_THRESHOLD ? 1 : 0;
 
             gpio_set_level(FAN_0_PIN, state);
+            vTaskDelay(pdMS_TO_TICKS(PUMP_ON_TIME_MS));
             gpio_set_level(FAN_1_PIN, state);
 
             ESP_LOGI(TAG, "Fans turned %s", state ? "on" : "off");
