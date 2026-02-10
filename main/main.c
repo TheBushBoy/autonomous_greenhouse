@@ -58,7 +58,7 @@ void sensor_task(void* pvParameters) {
             ESP_LOGD(TAG, "Moisture 2  : %4.1f %%", hw390_reading.moisture[1]);
             ESP_LOGD(TAG, "Moisture 3  : %4.1f %%", hw390_reading.moisture[2]);
         } else {
-            ESP_LOGW(TAG, "HW390 reading error");
+            ESP_LOGW(TAG, "Moisture sensor HW390 reading error");
         }
 
         if (xSemaphoreTake(sensor_mutex, pdMS_TO_TICKS(50)) == pdTRUE) {
