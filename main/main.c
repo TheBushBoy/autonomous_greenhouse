@@ -12,7 +12,7 @@
 #include "includes/logs.h"
 #include "includes/sensors.h"
 
-#define READ_INTERVAL_MS 5000
+#define READ_INTERVAL_MS 60000 // 1 minute
 
 #define PUMP_0_PIN GPIO_NUM_23
 #define PUMP_1_PIN GPIO_NUM_19
@@ -120,6 +120,8 @@ void fan_task(void *pvParameters) {
     gpio_set_level(FAN_0_PIN, 0);
     gpio_set_level(FAN_1_PIN, 0);
 
+    static uint32_t prev_state = 0;
+
     while (1) {
         float temp;
         if (xSemaphoreTake(sensor_mutex, pdMS_TO_TICKS(50)) == pdTRUE) {
@@ -129,11 +131,20 @@ void fan_task(void *pvParameters) {
             temp = 0.0f;
         }
 
-        uint32_t state = temp > TEMP_THRESHOLD ? 1 : 0;
-        gpio_set_level(FAN_0_PIN, state);
-        gpio_set_level(FAN_1_PIN, state);
+        uint32_t state = prev_state;
+        if (state == 0 && temp > TEMP_THRESHOLD) {
+            state = 1;
+        } else if ( state == 1 && temp < TEMP_THRESHOLD - 2 ) { // hysteresis of 2 °C
+            state = 0;
+        }
 
-        ESP_LOGI(TAG, "Fans turned %s", state ? "on" : "off");
+        if(state != prev_state) {
+            gpio_set_level(FAN_0_PIN, state);
+            gpio_set_level(FAN_1_PIN, state);
+            
+            ESP_LOGI(TAG, "Fans turned %s", state ? "on" : "off");
+            prev_state = state;
+        }
 
         vTaskDelay(pdMS_TO_TICKS(FAN_TASK_PERIOD_MS));
     }
