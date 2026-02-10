@@ -7,13 +7,11 @@
 #include <esp_system.h>
 #include <nvs_flash.h>
 #include <sys/param.h>
-#include "esp_netif.h"
-#include "esp_http_server.h"
-#include "freertos/event_groups.h"
-#include "esp_ota_ops.h"
+#include <esp_netif.h>
+#include <esp_http_server.h>
+#include <freertos/event_groups.h>
+#include <esp_ota_ops.h>
 #include <cJSON.h>
-
-#include "esp_http_server.h"
 
 typedef struct {
     float temperature;
@@ -22,7 +20,7 @@ typedef struct {
     float soil_moisture_2;
     float soil_moisture_3;
 } sensor_data_t;
-
+    
 httpd_handle_t start_webserver(void);
 void stop_webserver(httpd_handle_t server);
 void update_sensor_data_http(float temp, float hum_air, float soil1, float soil2, float soil3);

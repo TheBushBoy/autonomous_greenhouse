@@ -7,6 +7,7 @@
 */
 
 #include "includes/http_server.h"
+#include "includes/logs.h"
 #include "driver/gpio.h"
 #include "hal/gpio_types.h"
 
@@ -39,6 +40,38 @@ static esp_err_t sensors_get_handler(httpd_req_t* req) {
     free(json_string);
     cJSON_Delete(root);
     
+    return ESP_OK;
+}
+
+/* GET /api/logs */
+static esp_err_t logs_get_handler(httpd_req_t* req) {
+    size_t log_count = logs_get_count();
+    
+    if (log_count == 0) {
+        httpd_resp_set_type(req, "text/plain; charset=utf-8");
+        httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+        httpd_resp_sendstr(req, "No logs available\n");
+        return ESP_OK;
+    }
+    
+    char* log_buffer = malloc(log_count + 1);
+    if (!log_buffer) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
+        return ESP_FAIL;
+    }
+    
+    size_t copied = logs_get_content(log_buffer, log_count + 1);
+    
+    httpd_resp_set_type(req, "text/plain; charset=utf-8");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    
+    if (copied > 0) {
+        httpd_resp_sendstr(req, log_buffer);
+    } else {
+        httpd_resp_sendstr(req, "Error reading logs\n");
+    }
+    
+    free(log_buffer);
     return ESP_OK;
 }
 
@@ -128,6 +161,13 @@ httpd_handle_t start_webserver(void) {
         .user_ctx  = NULL
     };
 
+    const httpd_uri_t uri_get_logs = {
+        .uri       = "/api/logs",
+        .method    = HTTP_GET,
+        .handler   = logs_get_handler,
+        .user_ctx  = NULL
+    };
+
     const httpd_uri_t uri_ota = {
         .uri       = "/ota",
         .method    = HTTP_POST,
@@ -137,6 +177,7 @@ httpd_handle_t start_webserver(void) {
 
     if (httpd_start(&server, &config) == ESP_OK) {
         httpd_register_uri_handler(server, &uri_get_sensors);
+        httpd_register_uri_handler(server, &uri_get_logs);
         httpd_register_uri_handler(server, &uri_ota);
         return server;
     }
@@ -219,4 +260,5 @@ void wifi_init_sta(httpd_handle_t* server) {
 
     ESP_LOGI(TAG, "Http server initialized");
     ESP_LOGI(TAG, "GET http://<IP_ESP>/api/sensors");
+    ESP_LOGI(TAG, "GET http://<IP_ESP>/api/logs");
 }
