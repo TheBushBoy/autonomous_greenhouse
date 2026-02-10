@@ -8,27 +8,32 @@
 
 #include "includes/http_server.h"
 #include "includes/logs.h"
-#include "driver/gpio.h"
-#include "hal/gpio_types.h"
+#include "includes/sensors.h"
 
 #define OTA_BUF_SIZE 1024
 #define LED_OTA_PIN GPIO_NUM_2
 
 static const char* TAG = "HTTP_SERVER";
 
-static sensor_data_t sensor_data = {0};
-
 /* GET /api/sensors */
 static esp_err_t sensors_get_handler(httpd_req_t* req) {
+    sensor_data_t local_data;
+
+    if (xSemaphoreTake(sensor_mutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        local_data = g_sensor_data;
+        xSemaphoreGive(sensor_mutex);
+    } else {
+        return ESP_FAIL;
+    }
     cJSON* root = cJSON_CreateObject();
     
-    cJSON_AddNumberToObject(root, "temperature", sensor_data.temperature);
-    cJSON_AddNumberToObject(root, "humidity_air", sensor_data.humidity_air);
+    cJSON_AddNumberToObject(root, "temperature", local_data.temperature);
+    cJSON_AddNumberToObject(root, "humidity_air", local_data.humidity_air);
     
     cJSON* soil_moisture = cJSON_CreateArray();
-    cJSON_AddItemToArray(soil_moisture, cJSON_CreateNumber(sensor_data.soil_moisture_1));
-    cJSON_AddItemToArray(soil_moisture, cJSON_CreateNumber(sensor_data.soil_moisture_2));
-    cJSON_AddItemToArray(soil_moisture, cJSON_CreateNumber(sensor_data.soil_moisture_3));
+    for (int i = 0; i < 3; i++) {
+        cJSON_AddItemToArray(soil_moisture, cJSON_CreateNumber(local_data.soil_moisture[i]));
+    }
     cJSON_AddItemToObject(root, "soil_moisture", soil_moisture);
     
     char* json_string = cJSON_Print(root);
@@ -188,14 +193,6 @@ httpd_handle_t start_webserver(void) {
 
 void stop_webserver(httpd_handle_t server) {
     httpd_stop(server);
-}
-
-void update_sensor_data_http(float temp, float hum_air, float soil1, float soil2, float soil3) {
-    sensor_data.temperature = temp;
-    sensor_data.humidity_air = hum_air;
-    sensor_data.soil_moisture_1 = soil1;
-    sensor_data.soil_moisture_2 = soil2;
-    sensor_data.soil_moisture_3 = soil3;
 }
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {

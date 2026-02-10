@@ -11,15 +11,9 @@
 #include <esp_http_server.h>
 #include <freertos/event_groups.h>
 #include <esp_ota_ops.h>
+#include "driver/gpio.h"
+#include "hal/gpio_types.h"
 #include <cJSON.h>
-
-typedef struct {
-    float temperature;
-    float humidity_air;
-    float soil_moisture_1;
-    float soil_moisture_2;
-    float soil_moisture_3;
-} sensor_data_t;
     
 httpd_handle_t start_webserver(void);
 void stop_webserver(httpd_handle_t server);
