@@ -10,7 +10,7 @@
 #include "includes/logs.h"
 #include "includes/sensors.h"
 
-#define OTA_BUF_SIZE 1024
+#define OTA_BUF_SIZE 2048
 #define LED_OTA_PIN GPIO_NUM_2
 
 static const char* TAG = "HTTP_SERVER";
@@ -92,6 +92,7 @@ esp_err_t ota_upload_handler(httpd_req_t *req) {
     if (update_partition == NULL) {
         ESP_LOGE(TAG, "No OTA partition found");
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "No OTA partition available");
+        gpio_set_level(LED_OTA_PIN, 0);
         return ESP_FAIL;
     }
     
@@ -99,6 +100,7 @@ esp_err_t ota_upload_handler(httpd_req_t *req) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_ota_begin failed: %s", esp_err_to_name(err));
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA begin failed");
+        gpio_set_level(LED_OTA_PIN, 0);
         return ESP_FAIL;
     }
     
@@ -111,6 +113,7 @@ esp_err_t ota_upload_handler(httpd_req_t *req) {
             ESP_LOGE(TAG, "esp_ota_write failed: %s", esp_err_to_name(err));
             esp_ota_abort(ota_handle);
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA write failed");
+            gpio_set_level(LED_OTA_PIN, 0);
             return ESP_FAIL;
         }
     }
@@ -119,6 +122,7 @@ esp_err_t ota_upload_handler(httpd_req_t *req) {
         ESP_LOGE(TAG, "HTTP receive failed");
         esp_ota_abort(ota_handle);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Reception failed");
+        gpio_set_level(LED_OTA_PIN, 0);
         return ESP_FAIL;
     }
         
@@ -126,6 +130,7 @@ esp_err_t ota_upload_handler(httpd_req_t *req) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_ota_end failed: %s", esp_err_to_name(err));
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA validation failed");
+        gpio_set_level(LED_OTA_PIN, 0);
         return ESP_FAIL;
     }
     
@@ -133,6 +138,7 @@ esp_err_t ota_upload_handler(httpd_req_t *req) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_ota_set_boot_partition failed: %s", esp_err_to_name(err));
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to set boot partition");
+        gpio_set_level(LED_OTA_PIN, 0);
         return ESP_FAIL;
     }
     
@@ -156,6 +162,7 @@ httpd_handle_t start_webserver(void) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.lru_purge_enable = true;
+    config.stack_size = 8192; // Double default size for the OTA
 
     ESP_LOGI(TAG, "HTTP server on port: '%d'", config.server_port);
 
